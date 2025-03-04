@@ -29,5 +29,3 @@ To download every compound available through pubchem as an SDF file, run:
 ```bash
 python download_pubchem_compounds.py
 ```
-
-Next
