@@ -1,7 +1,6 @@
 import os
 import requests
 import time
-import warnings
 from neattime import neattime
 import re
 import argparse
