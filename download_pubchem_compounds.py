@@ -1,5 +1,7 @@
 """
 Download all molecules from the PubChem Compound database as SDF files.
+
+Use flag --test to only download a few files for testing purposes.
 """
 
 import os
