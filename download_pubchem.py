@@ -1,3 +1,7 @@
+"""
+Download all molecules from the PubChem Compound database as SDF files.
+"""
+
 import os
 import requests
 import time
@@ -7,14 +11,14 @@ import argparse
 
 num_files_for_test = 3
 
-url_root = "https://ftp.ncbi.nlm.nih.gov/pubchem/Substance/CURRENT-Full/SDF/"
+url_root = "https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/CURRENT-Full/SDF/"
 
 def get_all_gzip_urls(url_root):
     response = requests.get(url_root)
 
     response_text = response.text
 
-    pattern = r'<a href="(Substance_\d+_\d+\.sdf\.gz)">'
+    pattern = r'<a href="(Compound_\d+_\d+\.sdf\.gz)">'
     urls = re.findall(pattern, response_text)
     full_urls = [url_root + u for u in urls]
     return full_urls
