@@ -4,15 +4,9 @@ import time
 import warnings
 from neattime import neattime
 import re
+import argparse
 
-test = True
-
-data_save_dir = f'pubchem_data/{'TEST_' if test else 'full_download'}{neattime()}/'
-
-if not os.path.exists(data_save_dir):
-    os.makedirs(data_save_dir)
-
-print(f"Data will be saved to {data_save_dir}")
+num_files_for_test = 3
 
 url_root = "https://ftp.ncbi.nlm.nih.gov/pubchem/Substance/CURRENT-Full/SDF/"
 
@@ -26,9 +20,23 @@ def get_all_gzip_urls(url_root):
     full_urls = [url_root + u for u in urls]
     return full_urls
 
-def main():
+def main(args):
+    data_save_dir = f'pubchem_data/{'TEST_' if args.test else 'full_download_'}{neattime()}/'
+
+    if not os.path.exists(data_save_dir):
+        os.makedirs(data_save_dir)
+
+    print(f"Data will be saved to {data_save_dir}")
+
+    if args.test:
+        print('-'*100, f'\nRunning in test mode. Only downloading {num_files_for_test} files.')
+        print('-'*100)
+
     print("Retrieving all gzip urls")
     urls = get_all_gzip_urls(url_root)
+
+    if args.test:
+        urls = urls[:num_files_for_test]
 
     num_urls = len(urls)
 
@@ -59,9 +67,6 @@ def main():
 
         # avoid making too many requests to quickly
         time.sleep(1)
-
-        if test and i > 3:
-            break
     
     print("All done.")
 
@@ -72,9 +77,15 @@ def main():
         print('Failed requests:')
         for i, (url, status_code) in enumerate(zip(urls, status_codes)):
             if status_code != 200:
-                print(f'{i}: url: {url}, status code: {status_code}')
+                print(f'#{i}: url: {url}, status code: {status_code}')
     else:
         print('No failed requests.')
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--test', action='store_true', help=f'Run in test mode. Only download {num_files_for_test} files.')
+    return parser.parse_args()
+
 if __name__ == '__main__':
-    main()
+    args = parse_args()
+    main(args)
