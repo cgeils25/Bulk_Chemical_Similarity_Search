@@ -29,3 +29,5 @@ To download every compound available through pubchem as an SDF file, run:
 ```bash
 python download_pubchem_compounds.py
 ```
+
+FYI this ended up being 111 GB of .gz files for me. 
