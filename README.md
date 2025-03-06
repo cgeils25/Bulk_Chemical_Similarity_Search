@@ -32,4 +32,4 @@ python -u download_pubchem_compounds.py
 
 (the -u flag is only important if you're writing to a log file. Without it, python just prints everything once the process finishes rather than continuously)
 
-FYI this ended up being 111 GB of .gz files for me. 
+FYI this ended up being 111 GB of compressed (.gz) files for me. Uncompressed, I calculated it would be 909.8 GB
