@@ -15,7 +15,16 @@ num_files_for_test = 3
 
 url_root = "https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/CURRENT-Full/SDF/"
 
-def get_all_gzip_urls(url_root):
+def get_all_gzip_urls(url_root: str) -> list:
+    """Get all urls ending with .sdf.gz from the given url_root.
+
+    Args:
+        url_root (str): url to the directory containing the .sdf.gz files
+
+    Returns:
+        list: list of urls ending with .sdf.gz
+    """
+
     response = requests.get(url_root)
 
     response_text = response.text
