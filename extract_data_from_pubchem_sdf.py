@@ -17,9 +17,10 @@ from tqdm import tqdm
 from neattime import neattime
 from rdkit import Chem
 
-
+# properties to extract from pubchem's .sdf files. 
 PROPERTIES_TO_EXTRACT_FROM_MOLS = ['PUBCHEM_COMPOUND_CID', 'PUBCHEM_IUPAC_NAME', 'PUBCHEM_SMILES']
 
+NUM_FILES_TO_TEST = 5
 NUM_MOLS_TO_TEST = 100
 
 
@@ -110,6 +111,15 @@ def process_gzipped_sdf_file_and_save(gzipped_sdf_filepath: str, output_dir: str
     print(f'Processed {gzipped_sdf_filepath}')
 
 
+def cleanup():
+    """
+    Cleanup function to cancel any paused processes and re-run for any files that failed
+
+    Had a problem where the pipeline got stuck on 2 files and I had to manually kill the process. Not sure what was the problem
+    """
+    raise NotImplementedError('This function is not implemented yet')
+
+
 def main(args):
     if args.output_dir is None:
         args.output_dir = f'extracted_pubchem_data/{'TEST_' if args.test else 'full_processed_data_'}{neattime()}/'
@@ -139,19 +149,20 @@ def main(args):
             num_processes = args.num_processes
 
         print(f'Using {num_processes} processes')
-        
-        pool = mp.Pool(processes=num_processes)
 
-        gzipped_sdf_filepaths = [os.path.join(args.input_dir, filename) for filename in gzipped_sdf_filenames]
+        # somehow this fixes a problem with the pool getting stuck. See https://pythonspeed.com/articles/python-multiprocessing/
+        with mp.Pool(processes=num_processes) as pool:
 
-        num_files = len(gzipped_sdf_filepaths)
+            gzipped_sdf_filepaths = [os.path.join(args.input_dir, filename) for filename in gzipped_sdf_filenames]
 
-        pool.starmap(
-            process_gzipped_sdf_file_and_save,
-            list(zip(gzipped_sdf_filepaths,
-            [args.output_dir] * num_files,
-            [args.test] * num_files))
-        )
+            num_files = len(gzipped_sdf_filepaths)
+
+            pool.starmap(
+                process_gzipped_sdf_file_and_save,
+                list(zip(gzipped_sdf_filepaths,
+                [args.output_dir] * num_files,
+                [args.test] * num_files))[:NUM_FILES_TO_TEST if args.test else None]
+            )
 
 
 def parse_args():
@@ -166,3 +177,4 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     main(args)
+    
