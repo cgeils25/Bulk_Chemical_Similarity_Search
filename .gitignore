@@ -3,3 +3,4 @@ pubchem_data
 slurm
 *.sdf
 *.gz
+extracted_pubchem_data
