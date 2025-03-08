@@ -7,3 +7,4 @@ extracted_pubchem_data
 notes.txt
 __pycache__
 *.pyc
+tanimoto_similarity_results
