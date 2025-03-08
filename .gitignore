@@ -9,3 +9,4 @@ __pycache__
 *.pyc
 tanimoto_similarity_results
 all_organic_smi.csv
+tanimoto.sh
