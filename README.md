@@ -16,20 +16,15 @@ conda activate bss
 
 ## Tests
 
-To download a small sample of pubchem's compounds for testing purposes, run:
+For each of the commands in 'Usage', add the --test flag to the end of the command to run a smaller version of the workflow.
+
+Example:
 
 ```bash
-python download_pubchem_compounds.py --test
+python -u download_pubchem_compounds.py --test
 ```
 
-Next, test extracting relevant data (SMILES, pubchem Id, etc.) from the resulting sdf files with:
-
-```bash
-python extract_data_from_pubchem_sdf.py --input_dir ... --test
-```
-
-Where '...' is the path to the directory containin the output of `download_pubchem_compounds.py`
-
+This will only download the first 3 compound files from pubchem.
 
 ## Usage
 
@@ -42,3 +37,12 @@ python -u download_pubchem_compounds.py
 (the -u flag is only important if you're writing to a log file. Without it, python just prints everything once the process finishes rather than continuously)
 
 FYI this ended up being 111 GB of compressed (.gz) files for me. Uncompressed, I calculated it would be 909.8 GB
+
+Next, to extract relevant data (SMILES, pubchem Id, etc.) from the resulting sdf files with parallelization, run:
+
+```bash
+python extract_data_from_pubchem_sdf.py --input_dir ... --num_processes -1
+```
+
+Where '...' is the path to the directory containing the output of `download_pubchem_compounds.py`
+
