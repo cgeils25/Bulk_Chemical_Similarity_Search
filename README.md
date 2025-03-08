@@ -1,3 +1,9 @@
+## Project Description
+
+This is a pipeline I developed for my research which downloads, processes, and runs a tanimoto similarity search on every compound available on PubChem. 
+
+It supports parallelization and is optimized for storage space.
+
 ## Setup
 
 The environment for this project is managed with conda. If you don't have conda installed, [view the instructions to download miniconda first](https://www.anaconda.com/docs/getting-started/miniconda/install).
