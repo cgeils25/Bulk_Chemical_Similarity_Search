@@ -97,7 +97,7 @@ def main(args):
         comparison_smiles_list = comparison_smiles_list[:NUM_MOLS_TO_TEST]
 
     if args.output_dir is None:
-        args.output_dir = f'tanimoto_similarity_results/{'TEST_' if args.test else 'full_tanimoto'}{neattime()}'
+        args.output_dir = f'tanimoto_similarity_results/{'TEST_' if args.test else 'full_tanimoto_'}{neattime()}'
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
