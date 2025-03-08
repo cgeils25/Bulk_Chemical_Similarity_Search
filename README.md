@@ -47,7 +47,7 @@ FYI this ended up being 111 GB of compressed (.gz) files for me. Uncompressed, I
 Next, to extract relevant data (SMILES, pubchem Id, etc.) from the resulting sdf files with parallelization, run:
 
 ```bash
-python extract_data_from_pubchem_sdf.py --input_dir ... --num_processes -1
+python -u extract_data_from_pubchem_sdf.py --input_dir ... --num_processes -1
 ```
 
 Where '...' is the path to the directory containing the output of `download_pubchem_compounds.py`
