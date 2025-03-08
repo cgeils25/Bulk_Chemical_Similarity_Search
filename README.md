@@ -1,8 +1,6 @@
 ## Project Description
 
-This is a pipeline I developed for my research which downloads, processes, and runs a tanimoto similarity search on every compound available on PubChem. 
-
-It supports parallelization and is optimized for storage space.
+This is a pipeline I developed for my research which downloads, extracts data from (in parallel), and runs a tanimoto similarity search on every compound available on PubChem.
 
 ## Setup
 
