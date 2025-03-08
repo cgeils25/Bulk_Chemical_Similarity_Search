@@ -4,3 +4,6 @@ slurm
 *.sdf
 *.gz
 extracted_pubchem_data
+notes.txt
+__pycache__
+*.pyc
