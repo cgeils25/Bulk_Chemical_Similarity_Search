@@ -22,6 +22,15 @@ To download a small sample of pubchem's compounds for testing purposes, run:
 python download_pubchem_compounds.py --test
 ```
 
+Next, test extracting relevant data (SMILES, pubchem Id, etc.) from the resulting sdf files with:
+
+```bash
+python extract_data_from_pubchem_sdf.py --input_dir ... --test
+```
+
+Where '...' is the path to the directory containin the output of `download_pubchem_compounds.py`
+
+
 ## Usage
 
 To download every compound available through pubchem as an SDF file, run:
