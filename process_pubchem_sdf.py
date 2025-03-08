@@ -9,7 +9,6 @@ import gzip
 import argparse
 import multiprocessing as mp
 import polars as pl
-import warnings
 from tqdm import tqdm
 from neattime import neattime
 from rdkit import Chem
