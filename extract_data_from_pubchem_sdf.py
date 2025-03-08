@@ -1,7 +1,11 @@
 """
---what does this file do--
+Extract properties of interest from .sdf.gz files obtained from Pubchem in a directory and save them as individual .csv files.
 
-To be clear, you can just download the .smi files directly from PubChem, but I wanted to have all the data in one place in case I need it for the future
+This workflow supports multiprocessing and can be run in test mode.
+
+for more info, run:
+    python extract_data_from_pubchem_sdf.py --help
+    
 """
 
 import os
@@ -13,16 +17,36 @@ from tqdm import tqdm
 from neattime import neattime
 from rdkit import Chem
 
-from subprocess import check_output
 
 PROPERTIES_TO_EXTRACT_FROM_MOLS = ['PUBCHEM_COMPOUND_CID', 'PUBCHEM_IUPAC_NAME', 'PUBCHEM_SMILES']
 
+NUM_MOLS_TO_TEST = 100
 
-def get_gzipped_sdf_filenames(directory):
+
+def get_gzipped_sdf_filenames(directory: str) -> list:
+    """ Get all filenames in a directory that end with .sdf.gz
+
+    Args:
+        directory (str): name of directory to look for .sdf.gz files
+
+    Returns:
+        list: list of filenames that end with .sdf.gz
+    """
     return [filename for filename in os.listdir(directory) if filename.endswith('sdf.gz')]
 
 
-def process_gzipped_sdf_file(gzipped_sdf_filepath, test=False):
+def process_gzipped_sdf_file(gzipped_sdf_filepath: str, test: bool = False) -> dict:
+    f""" Process a gzipped .sdf file and extract the properties of interest. 
+
+    Properties of interest are defined in PROPERTIES_TO_EXTRACT_FROM_MOLS
+
+    Args:
+        gzipped_sdf_filepath (str): path to the gzipped .sdf file
+        test (bool, optional): if True, only process the first {NUM_MOLS_TO_TEST} molecules. Defaults to False.
+
+    Returns:
+        dict: dictionary of properties of interest and their values (as lists)
+    """
 
     data = {property: [] for property in PROPERTIES_TO_EXTRACT_FROM_MOLS}
 
@@ -48,15 +72,35 @@ def process_gzipped_sdf_file(gzipped_sdf_filepath, test=False):
     return data
 
 
-def save_data_to_csv(data, output_dir, filename):
+def save_data_to_csv(data: dict, output_dir: str, filename: str) -> None:
+    """Save data in the form of a dictionary to a csv file
+
+    Note: output_dir and filename are combined to form the full path to the file
+
+    Args:
+        data (dict): dictionary of data to save
+        output_dir (str): directory to save the data
+        filename (str): name of the file to save the data as
+    """
+
     df = pl.from_dict(data)
 
-    df.write_csv(os.path.join(output_dir, filename))
+    filepath = os.path.join(output_dir, filename)
+
+    df.write_csv(filepath)
 
     print(f'Saved data to {os.path.join(output_dir, filename)}')
 
 
-def process_gzipped_sdf_file_and_save(gzipped_sdf_filepath, output_dir, test=False):
+def process_gzipped_sdf_file_and_save(gzipped_sdf_filepath: str, output_dir: str, test: bool = False):
+    f"""Process a gzipped .sdf file and save the data to a csv file. This is a convenience function needed for multiprocessing.
+    It should mimic the behavior of the single process version by combining the process_gzipped_sdf_file and save_data_to_csv functions.
+
+    Args:
+        gzipped_sdf_filepath (str): path to the gzipped .sdf file
+        output_dir (str): directory to save the data
+        test (bool, optional): if True, only process the first {NUM_MOLS_TO_TEST} molecules. Defaults to False.
+    """
     data = process_gzipped_sdf_file(gzipped_sdf_filepath, test=test)
 
     filename = os.path.basename(gzipped_sdf_filepath).replace('.sdf.gz', '.csv')
@@ -111,7 +155,7 @@ def main(args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Converts .sdf files to .smi files')
+    parser = argparse.ArgumentParser(description='Extracts properties from .sdf.gz files obtained from Pubchem in a directory and saves them as individual .csv files')
     parser.add_argument('--input_dir', type=str, required=True, help='Directory containing pubchem data as .sdf.gz')
     parser.add_argument('--output_dir', type=str, required=False, default=None, help='Directory to save the extracted data')
     parser.add_argument('--num_processes', type=int, default=-1, help='Number of processes to use. -1 means use all available cores')
