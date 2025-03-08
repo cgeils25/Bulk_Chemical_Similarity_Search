@@ -22,7 +22,7 @@ conda activate bss
 
 ## Tests
 
-For each of the commands in 'Usage', add the --test flag to the end of the command to run a smaller version of the workflow.
+For each of the commands in 'Usage', add the --test flag to the end of the command to run a smaller version of the workflow for testing purposes.
 
 Example:
 
