@@ -23,15 +23,19 @@ def smiles_list_to_fingerprint_matrix(smiles_list, fingerprint_size=2048, radius
     
     num_mols = len(smiles_list)
 
-    fingerprint_matrix = np.empty((num_mols, fingerprint_size), dtype=np.int8)
+    fingerprint_matrix = np.zeros((num_mols, fingerprint_size), dtype=np.int8)
 
     mols = [Chem.MolFromSmiles(smiles) for smiles in smiles_list]
     
     for i, mol in enumerate(tqdm(mols, desc='Computing fingerprints', disable=disable_tqdm)):
+        
+        if mol is None:
+            print(f'Warning: Invalid SMILES at index {i}: {smiles_list[i]}')
+        
+        else: 
+            fingerprint = fingerprint_generator.GetFingerprintAsNumPy(mol)
 
-        fingerprint = fingerprint_generator.GetFingerprintAsNumPy(mol)
-
-        fingerprint_matrix[i] = np.array(fingerprint)
+            fingerprint_matrix[i] = np.array(fingerprint)
 
     return fingerprint_matrix
 
