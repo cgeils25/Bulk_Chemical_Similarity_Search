@@ -6,6 +6,7 @@ for more info, run:
 """
 
 import os
+import subprocess
 import argparse
 import numpy as np
 import polars as pl
@@ -23,6 +24,10 @@ NUM_MOLS_TO_TEST = 100
 # will include these in the output tanimoto results
 from extract_data_from_pubchem_sdf import PROPERTIES_TO_EXTRACT_FROM_MOLS
 
+# ignores a warning that pops up when the script ends which halts everything: source_tracker: There appear to be 2 leaked semaphore objects to clean up at shutdown: {'/mp-7hozeleu', '/mp-_ni56uyz'}
+#  warnings.warn(
+os.environ['PYTHONWARNINGS'] = 'ignore:resource_tracker'
+
 
 def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, radius: int, disable_tqdm: bool = False) -> np.ndarray:
     """Generate a matrix conaining morgan fingerprints from a list of SMILES strings
@@ -38,7 +43,6 @@ def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, 
     Returns:
         np.ndarray: a matrix of shape (len(smiles_list), fingerprint_size) containing the morgan fingerprints
     """
-
     fingerprint_generator = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=fingerprint_size)
     
     num_mols = len(smiles_list)
@@ -123,22 +127,23 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
             test (bool, optional): whether to run in test mode (will only process a small sample of the data). Defaults to False.
             disable_tqdm (bool, optional): whether or not to display loading bars. Defaults to False.
         """
-
+        
         extracted_pubchem_data_df = pl.read_parquet(source=extracted_pubchem_data_filepath)
-
+        
         pubchem_smiles_list = extracted_pubchem_data_df['PUBCHEM_SMILES'].to_list()
-
+        
         if test:
             pubchem_smiles_list = pubchem_smiles_list[:NUM_MOLS_TO_TEST]
-
+        
         pubchem_fingerprint_matrix = smiles_list_to_fingerprint_matrix(pubchem_smiles_list, fingerprint_size, radius, disable_tqdm=disable_tqdm)
+        
         comparison_fingerprint_matrix = smiles_list_to_fingerprint_matrix(comparison_smiles_list, fingerprint_size, radius, disable_tqdm=disable_tqdm) # This gets computed multiple times because I don't think you can pickle it for multiprocessing. Idk ig I should test at some point
-
+        
         tanimoto_similarity_matrix = compute_tanimoto_similarity_matrix(pubchem_fingerprint_matrix, comparison_fingerprint_matrix)
-
+        
         tanimoto_similarity_df = pl.DataFrame(tanimoto_similarity_matrix, schema = comparison_smiles_list)
-
         # add the properties that were extracted from the original pubchem sdf files
+        
         for i, property in enumerate(PROPERTIES_TO_EXTRACT_FROM_MOLS):
             if property in extracted_pubchem_data_df.columns:
                 property_values = extracted_pubchem_data_df[property].to_list()
@@ -149,7 +154,7 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
                 tanimoto_similarity_df.insert_column(index=i, column=pl.Series(name=property, values=property_values))
             else:
                 print(f'Warning: Property {property} not found in {extracted_pubchem_data_filepath}. Skipping.')
-
+        
         extracted_pubchem_data_filename = os.path.basename(extracted_pubchem_data_filepath).replace('.zst', '_tanimoto_similarity.zst')
 
         save_path = os.path.join(output_dir, extracted_pubchem_data_filename) 
@@ -158,18 +163,7 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
         tanimoto_similarity_df.write_parquet(file=save_path, compression = 'zstd', compression_level=8) # zstd compression recommended by polars for good compression performance: https://docs.pola.rs/api/python/dev/reference/api/polars.DataFrame.write_parquet.html
 
         print(f'Saved tanimoto similarity between {extracted_pubchem_data_filepath} and {comparison_dataset} to {save_path}')
-
-
-def run_comparison_parallel_support(comparison_dataset: str, extracted_pubchem_data_filepath: str, 
-                                    output_dir: str, fingerprint_size: str, radius: str, test: bool = False):
-    
-    """
-    Same as run_comparison but for multiprocessing. Currently not used because multiprocessing breaks every time
-    """
-    comparsion_smiles_list = get_comparison_smiles_list(comparison_dataset)
-
-    run_comparison(comparsion_smiles_list, comparison_dataset, extracted_pubchem_data_filepath, output_dir, fingerprint_size, radius, test, disable_tqdm=True)
-
+        
 
 def main(args):
     comparison_smiles_list = get_comparison_smiles_list(args.comparison_dataset)
@@ -197,7 +191,6 @@ def main(args):
                 break
 
     else:
-        raise NotImplementedError('Multiprocessing does not work yet. Just freezes on me. Confirmed tqdm was not the problem')
         if args.num_processes == -1:
             num_processes = mp.cpu_count()
         else:
@@ -208,17 +201,23 @@ def main(args):
         # is there a less dumb way to do this?
         num_pubchem_files = len(extracted_pubchem_data_filenames)
 
-        inputs_zipped = list(zip([args.comparison_dataset] * num_pubchem_files,
+        inputs_zipped = list(zip([comparison_smiles_list] * num_pubchem_files,
+                                [args.comparison_dataset] * num_pubchem_files,
                                  extracted_pubchem_data_filepaths, 
                                  [args.output_dir] * num_pubchem_files, 
                                  [args.fingerprint_size] * num_pubchem_files, 
                                  [args.radius] * num_pubchem_files, 
-                                 [args.test] * num_pubchem_files))
+                                 [args.test] * num_pubchem_files,
+                                [True] * num_pubchem_files))
         
-        with mp.Pool(processes=num_processes) as pool:
+        if args.test:
+            inputs_zipped = inputs_zipped[:NUM_FILES_TO_TEST]
+        
+        # have to use spawn. Polars breaks if fork is used: https://docs.pola.rs/user-guide/misc/multiprocessing/#summary
+        with mp.get_context("spawn").Pool(processes=num_processes) as pool:
 
-            pool.starmap(run_comparison_parallel_support, inputs_zipped)
-
+            pool.starmap(run_comparison, inputs_zipped)
+        
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run a Tanimoto similarity search")
