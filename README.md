@@ -64,12 +64,14 @@ Next, to compute the pairwise tanimoto similarity between compounds in your data
 python -u compute_tanimoto_similarity.py \
     --comparison_dataset test_comparison_dataset.csv \
     --extracted_pubchem_data_dir ... \
-    --num_processes 1
+    --num_processes 8
 ```
 
 Where '...' is the path to the directory containing the output of `extract_data_from_pubchem_sdf.py`
 
 You can replace `test_comparison_dataset.csv` with your data. It should contain a column named "smiles" whose rows are SMILES strings. 
+
+NOTE: be careful with the number of processes for `compute_tanimoto_similarity.py`. When running this on an HPC node with a 48-core intel xeon and 196 GB of RAM, the highest I could do while remaining stable was 16. This is the most memory-intense part of the pipeline so adjust to your needs.  
 
 Finally, filter out compounds without at least one tanimoto similarity score above a given threshold (here 0.8), run:
 
