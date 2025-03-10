@@ -1,6 +1,8 @@
 # Project Description
 
-This is a pipeline I developed for my research which downloads, extracts data from (in parallel), and runs a tanimoto similarity search on every compound available on PubChem.
+This is a data pipeline I developed for my research which downloads, extracts data from, and runs a tanimoto similarity search on every compound available on PubChem.
+
+I tried my best to optimize this with parallelization and file compression to reduce storage requirements, but you could probably push things further by writing in C/C++ and with some more clever tricks. I skipped this because I had to publish my paper eventually...
 
 ## Setup
 
@@ -32,6 +34,12 @@ This will only download the first 3 compound files from pubchem.
 
 ## Usage
 
+### To Run the Entire Pipeline at Once
+
+...add later...
+
+### To Run it in Stages
+
 To download every compound available through pubchem as an SDF file, run:
 
 ```bash
@@ -50,3 +58,27 @@ python -u extract_data_from_pubchem_sdf.py --input_dir ... --num_processes -1
 
 Where '...' is the path to the directory containing the output of `download_pubchem_compounds.py`
 
+Next, to compute the pairwise tanimoto similarity between compounds in your dataset and every compound on pubchem, run:
+
+```bash
+python -u tanimoto_similarity_search.py \
+    --comparison_dataset test_comparison_dataset.csv \
+    --extracted_pubchem_data_dir ... \
+    --num_processes 1
+```
+
+Where '...' is the path to the directory containing the output of `extract_data_from_pubchem_sdf.py`
+
+You can replace `test_comparison_dataset.csv` with your data. It should contain a column named "smiles" whose rows are SMILES strings. 
+
+Finally, filter out compounds without at least one tanimoto similarity score above a given threshold (here 0.8), run:
+
+```bash
+python filter_tanimoto_results.py \
+    --tanimoto_directory ... \
+    --threshold 0.8
+```
+
+Where '...' is the path to the directory containing the output of `tanimoto_similarity_search.py`
+
+This last step is of course optional and you could really do whatever you want with the computed tanimoto scores
