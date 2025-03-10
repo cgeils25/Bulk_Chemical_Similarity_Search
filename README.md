@@ -36,7 +36,13 @@ This will only download the first 3 compound files from pubchem.
 
 ### To Run the Entire Pipeline at Once
 
-...add later...
+Run: 
+
+```bash
+source run_full_pipeline.sh
+```
+
+TODO add some args to this script so users can specify their dataset, threshold, number of cores, etc.
 
 ### To Run it in Stages
 
