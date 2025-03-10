@@ -1,5 +1,8 @@
 """
-Run a Tanimoto similarity search
+Compute Tanimoto similarity between a comparison dataset and PubChem compounds
+
+for more info, run:
+    python compute_tanimoto_similarity.py --help
 """
 
 import os
@@ -22,7 +25,21 @@ NUM_MOLS_TO_TEST = 100
 from extract_data_from_pubchem_sdf import PROPERTIES_TO_EXTRACT_FROM_MOLS
 
 
-def smiles_list_to_fingerprint_matrix(smiles_list, fingerprint_size=2048, radius=2, disable_tqdm=False):
+def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, radius: int, disable_tqdm: bool = False) -> np.ndarray:
+    """Generate a matrix conaining morgan fingerprints from a list of SMILES strings
+
+    Each row in the output corresponds to a fingerprint from one SMILES string
+
+    Args:
+        smiles_list (list): a list of SMILES strings
+        fingerprint_size (int, optional): the length of the morgan fingerprint.
+        radius (int, optional): radius of the morgan fingerprint. This determines the number of bonds away from a central atom to consider when extracting substructures to embed.
+        disable_tqdm (bool, optional): whether or not to display loading bars. Defaults to False.
+
+    Returns:
+        np.ndarray: a matrix of shape (len(smiles_list), fingerprint_size) containing the morgan fingerprints
+    """
+
     fingerprint_generator = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=fingerprint_size)
     
     num_mols = len(smiles_list)
@@ -44,7 +61,18 @@ def smiles_list_to_fingerprint_matrix(smiles_list, fingerprint_size=2048, radius
     return fingerprint_matrix
 
 
-def compute_tanimoto_similarity_matrix(fingerprint_matrix_1, fingerprint_matrix_2):
+def compute_tanimoto_similarity_matrix(fingerprint_matrix_1: np.ndarray, fingerprint_matrix_2: np.ndarray) -> np.ndarray:
+    """Compute the pairwise Tanimoto similarity between two sets of morgan fingerprints
+
+    Index i,j of the output matrix corresponds to the Tanimoto similarity between the i-th fingerprint in fingerprint_matrix_1 and the j-th fingerprint in fingerprint_matrix_2
+
+    Args:
+        fingerprint_matrix_1 (np.ndarray): the first matrix of morgan fingerprints
+        fingerprint_matrix_2 (np.ndarray): the second matrix of morgan fingerprints
+
+    Returns:
+        np.ndarray: a matrix of shape (len(fingerprint_matrix_1), len(fingerprint_matrix_2)) containing the Tanimoto similarity
+    """
     # scipy's implementation of this is weird (see Jaccard and Rogers-Tanimoto). Chose to implement it myself
     C = fingerprint_matrix_1 @ fingerprint_matrix_2.T
 
@@ -56,7 +84,22 @@ def compute_tanimoto_similarity_matrix(fingerprint_matrix_1, fingerprint_matrix_
     return distance_matrix
 
 
-def get_comparison_smiles_list(filepath):
+def get_comparison_smiles_list(filepath: str) -> list:
+    """Get the list of SMILES strings from a comparison dataset
+
+    Args:
+        filepath (str): the path to the comparison dataset. Must be a CSV file with a 'smiles' column
+
+    Raises:
+        ValueError: if the file is not a CSV file
+        ValueError: if the column 'smiles' is not found in the dataset
+
+    Returns:
+        list: a list of SMILES strings
+    """
+    if not filepath.endswith('.csv'):
+        raise ValueError(f'File {filepath} is not a CSV file')
+    
     df = pl.read_csv(filepath)
 
     if 'smiles' not in df.columns:
@@ -67,7 +110,21 @@ def get_comparison_smiles_list(filepath):
     return smiles_list
 
 
-def run_comparison(comparison_smiles_list, comparison_dataset, extracted_pubchem_data_filepath, output_dir, fingerprint_size, radius, test=False, disable_tqdm=False):
+def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extracted_pubchem_data_filepath: str, 
+                   output_dir: str, fingerprint_size: int, radius: int, test: bool = False, disable_tqdm: bool = False) -> None:
+        """Run a Tanimoto similarity search between a comparison dataset and PubChem compounds and save the results
+
+        Args:
+            comparison_smiles_list (list): a list of SMILES strings from the dataset to compare PubChem against
+            comparison_dataset (str): path to the comparison dataset
+            extracted_pubchem_data_filepath (str): path to the extracted PubChem data
+            output_dir (str): path to the directory where the results will be saved
+            fingerprint_size (int): size of the morgan fingerprint
+            radius (int): radius of the morgan fingerprint
+            test (bool, optional): whether to run in test mode (will only process a small sample of the data). Defaults to False.
+            disable_tqdm (bool, optional): whether or not to display loading bars. Defaults to False.
+        """
+
         extracted_pubchem_data_df = pl.read_csv(source=extracted_pubchem_data_filepath)
 
         pubchem_smiles_list = extracted_pubchem_data_df['PUBCHEM_SMILES'].to_list()
@@ -104,7 +161,12 @@ def run_comparison(comparison_smiles_list, comparison_dataset, extracted_pubchem
         print(f'Saved tanimoto similarity between {extracted_pubchem_data_filepath} and {comparison_dataset} to {save_path}')
 
 
-def run_comparison_parallel_support(comparison_dataset, extracted_pubchem_data_filepath, output_dir, fingerprint_size, radius, test=False):
+def run_comparison_parallel_support(comparison_dataset: str, extracted_pubchem_data_filepath: str, 
+                                    output_dir: str, fingerprint_size: str, radius: str, test: bool = False):
+    
+    """
+    Same as run_comparison but for multiprocessing. Currently not used because multiprocessing breaks every time
+    """
     comparsion_smiles_list = get_comparison_smiles_list(comparison_dataset)
 
     run_comparison(comparsion_smiles_list, comparison_dataset, extracted_pubchem_data_filepath, output_dir, fingerprint_size, radius, test, disable_tqdm=True)
