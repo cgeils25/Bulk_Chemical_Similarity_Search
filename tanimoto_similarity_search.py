@@ -8,6 +8,7 @@ import numpy as np
 import polars as pl
 import multiprocessing as mp
 from tqdm import tqdm
+import gzip
 
 from rdkit import Chem
 from rdkit.Chem import rdFingerprintGenerator
@@ -62,6 +63,7 @@ def get_comparison_smiles_list(filepath):
 
     return smiles_list
 
+
 def run_comparison(comparison_smiles_list, comparison_dataset, extracted_pubchem_data_filepath, output_dir, fingerprint_size, radius, test=False, disable_tqdm=False):
         extracted_pubchem_data_df = pl.read_csv(source=extracted_pubchem_data_filepath)
 
@@ -79,11 +81,12 @@ def run_comparison(comparison_smiles_list, comparison_dataset, extracted_pubchem
 
         tanimoto_similarity_df.insert_column(index=0, column=pl.Series(name='PUBCHEM_SMILES', values=pubchem_smiles_list))
 
-        extracted_pubchem_data_filename = os.path.basename(extracted_pubchem_data_filepath).replace('.csv', '_tanimoto_similarity.csv')
+        extracted_pubchem_data_filename = os.path.basename(extracted_pubchem_data_filepath).replace('.csv', '_tanimoto_similarity.zst')
 
-        save_path = os.path.join(output_dir, extracted_pubchem_data_filename)  
+        save_path = os.path.join(output_dir, extracted_pubchem_data_filename) 
 
-        tanimoto_similarity_df.write_csv(file=save_path)
+        # save a compressed parquet file. My experiments show about a 2x compression rate for the test run with zstd and compression level 8 
+        tanimoto_similarity_df.write_parquet(file=save_path, compression = 'zstd', compression_level=8) # zstd compression recommended by polars for good compression performance: https://docs.pola.rs/api/python/dev/reference/api/polars.DataFrame.write_parquet.html
 
         print(f'Saved tanimoto similarity between {extracted_pubchem_data_filepath} and {comparison_dataset} to {save_path}')
 
