@@ -11,3 +11,5 @@ tanimoto_similarity_results
 all_organic_smi.csv
 tanimoto.sh
 filter_tanimoto.sh
+filtered_tanimoto_similarity_results
+
