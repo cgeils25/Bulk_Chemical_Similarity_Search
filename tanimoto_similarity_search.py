@@ -18,6 +18,9 @@ from neattime import neattime
 NUM_FILES_TO_TEST = 5
 NUM_MOLS_TO_TEST = 100
 
+# will include these in the output tanimoto results
+from extract_data_from_pubchem_sdf import PROPERTIES_TO_EXTRACT_FROM_MOLS
+
 
 def smiles_list_to_fingerprint_matrix(smiles_list, fingerprint_size=2048, radius=2, disable_tqdm=False):
     fingerprint_generator = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=fingerprint_size)
@@ -79,7 +82,17 @@ def run_comparison(comparison_smiles_list, comparison_dataset, extracted_pubchem
 
         tanimoto_similarity_df = pl.DataFrame(tanimoto_similarity_matrix, schema = comparison_smiles_list)
 
-        tanimoto_similarity_df.insert_column(index=0, column=pl.Series(name='PUBCHEM_SMILES', values=pubchem_smiles_list))
+        # add the properties that were extracted from the original pubchem sdf files
+        for i, property in enumerate(PROPERTIES_TO_EXTRACT_FROM_MOLS):
+            if property in extracted_pubchem_data_df.columns:
+                property_values = extracted_pubchem_data_df[property].to_list()
+
+                if test:
+                    property_values = property_values[:NUM_MOLS_TO_TEST]
+
+                tanimoto_similarity_df.insert_column(index=i, column=pl.Series(name=property, values=property_values))
+            else:
+                print(f'Warning: Property {property} not found in {extracted_pubchem_data_filepath}. Skipping.')
 
         extracted_pubchem_data_filename = os.path.basename(extracted_pubchem_data_filepath).replace('.csv', '_tanimoto_similarity.zst')
 
