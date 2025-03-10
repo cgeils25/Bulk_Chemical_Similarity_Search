@@ -61,7 +61,7 @@ Where '...' is the path to the directory containing the output of `download_pubc
 Next, to compute the pairwise tanimoto similarity between compounds in your dataset and every compound on pubchem, run:
 
 ```bash
-python -u tanimoto_similarity_search.py \
+python -u compute_tanimoto_similarity.py \
     --comparison_dataset test_comparison_dataset.csv \
     --extracted_pubchem_data_dir ... \
     --num_processes 1
