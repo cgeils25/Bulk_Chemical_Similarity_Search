@@ -108,7 +108,6 @@ dependencies:
   - reportlab=4.3.1
   - requests=2.32.3
   - rlpycairo=0.2.0
-  - scipy=1.15.2
   - six=1.17.0
   - sqlalchemy=2.0.38
   - tk=8.6.13
