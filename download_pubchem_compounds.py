@@ -35,12 +35,15 @@ def get_all_gzip_urls(url_root: str) -> list:
     return full_urls
 
 def main(args):
-    data_save_dir = f'pubchem_data/{'TEST_' if args.test else 'full_download_'}{neattime()}/'
+    if args.output_dir:
+        output_dir = args.output_dir
+    else:
+        output_dir = f'pubchem_data/{'TEST_' if args.test else 'full_download_'}{neattime()}/'
 
-    if not os.path.exists(data_save_dir):
-        os.makedirs(data_save_dir)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-    print(f"Data will be saved to {data_save_dir}")
+    print(f"Data will be saved to {output_dir}")
 
     if args.test:
         print('-'*100, f'\nRunning in test mode. Only downloading {NUM_FILES_TO_TEST} files.')
@@ -72,7 +75,7 @@ def main(args):
 
         print('Saving data...')
 
-        file_save_path = f"{data_save_dir}{url.split('/')[-1]}"
+        file_save_path = f"{output_dir}{url.split('/')[-1]}"
 
         with open(file_save_path, 'wb') as f:
             f.write(response.content)
@@ -98,6 +101,7 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--test', action='store_true', help=f'Run in test mode. Only download {NUM_FILES_TO_TEST} files.')
+    parser.add_argument('--output_dir', type=str, default=None, help='Directory to save the downloaded files. If not specified, will be saved to pubchem_data/ with a timestamp.')
     return parser.parse_args()
 
 if __name__ == '__main__':
