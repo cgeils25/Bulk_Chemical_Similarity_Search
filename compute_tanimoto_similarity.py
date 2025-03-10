@@ -12,6 +12,7 @@ import numpy as np
 import polars as pl
 import multiprocessing as mp
 from tqdm import tqdm
+import warnings
 
 from rdkit import Chem, RDLogger
 from rdkit.Chem import rdFingerprintGenerator
@@ -192,9 +193,13 @@ def main(args):
                 break
 
     else:
+        processes_available = mp.cpu_count()
         if args.num_processes == -1:
-            num_processes = mp.cpu_count()
+            num_processes = processes_available
         else:
+            if args.num_processes > processes_available:
+                warnings.warn(f'Number of processes {args.num_processes} is greater than the number of available processes {processes_available}. Using {processes_available} instead.')
+            
             num_processes = args.num_processes
 
         print(f'Using {num_processes} processes')
