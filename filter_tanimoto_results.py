@@ -4,13 +4,7 @@ Filter out PubChem compounds with low Tanimoto similarity scores
 
 import os
 import argparse
-import numpy as np
 import polars as pl
-import multiprocessing as mp
-from tqdm import tqdm
-
-from rdkit import Chem
-from rdkit.Chem import rdFingerprintGenerator
 
 from neattime import neattime
 
@@ -35,12 +29,15 @@ def filter_tanimoto_results(tanimoto_directory: str, threshold: float, test: boo
     if test:
         tanimoto_result_filepaths = tanimoto_result_filepaths[:NUM_FILES_TO_TEST]
 
+    print('Initalizing query...')
     combine_and_filter_query = (
         pl.scan_parquet(tanimoto_result_filepaths)
         .filter(pl.any_horizontal(pl.exclude(PROPERTIES_TO_EXTRACT_FROM_MOLS) > threshold))
     )
 
+    print(f'Filtering Tanimoto results with threshold {threshold}...')
     filtered_tanimoto_results = combine_and_filter_query.collect()
+    print(f'Filtered Tanimoto results collected.')
 
     return filtered_tanimoto_results
 
