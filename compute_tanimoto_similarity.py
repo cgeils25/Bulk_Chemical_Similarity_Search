@@ -11,7 +11,6 @@ import numpy as np
 import polars as pl
 import multiprocessing as mp
 from tqdm import tqdm
-import gzip
 
 from rdkit import Chem
 from rdkit.Chem import rdFingerprintGenerator
@@ -125,7 +124,7 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
             disable_tqdm (bool, optional): whether or not to display loading bars. Defaults to False.
         """
 
-        extracted_pubchem_data_df = pl.read_csv(source=extracted_pubchem_data_filepath)
+        extracted_pubchem_data_df = pl.read_parquet(source=extracted_pubchem_data_filepath)
 
         pubchem_smiles_list = extracted_pubchem_data_df['PUBCHEM_SMILES'].to_list()
 
@@ -151,7 +150,7 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
             else:
                 print(f'Warning: Property {property} not found in {extracted_pubchem_data_filepath}. Skipping.')
 
-        extracted_pubchem_data_filename = os.path.basename(extracted_pubchem_data_filepath).replace('.csv', '_tanimoto_similarity.zst')
+        extracted_pubchem_data_filename = os.path.basename(extracted_pubchem_data_filepath).replace('.zst', '_tanimoto_similarity.zst')
 
         save_path = os.path.join(output_dir, extracted_pubchem_data_filename) 
 
@@ -233,7 +232,7 @@ def parse_args():
         "--extracted_pubchem_data_dir",
         type=str,
         required=True,
-        help="Path to the directory containing PubChem data extracted from sdf files. Expected to contain multiple CSV files with a PUBCHEM_SMILES column."
+        help="Path to the directory containing PubChem data extracted from sdf files. Expected to contain multiple zst files with a PUBCHEM_SMILES column."
     )
     parser.add_argument(
         "--output_dir",
