@@ -13,8 +13,9 @@ import polars as pl
 import multiprocessing as mp
 from tqdm import tqdm
 
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 from rdkit.Chem import rdFingerprintGenerator
+RDLogger.DisableLog('rdApp.*') # ignore rdkit's warnings
 
 from neattime import neattime
 
@@ -127,7 +128,7 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
             test (bool, optional): whether to run in test mode (will only process a small sample of the data). Defaults to False.
             disable_tqdm (bool, optional): whether or not to display loading bars. Defaults to False.
         """
-        
+        print(f'Running tanimoto similarity computation between {extracted_pubchem_data_filepath} and {comparison_dataset}')
         extracted_pubchem_data_df = pl.read_parquet(source=extracted_pubchem_data_filepath)
         
         pubchem_smiles_list = extracted_pubchem_data_df['PUBCHEM_SMILES'].to_list()
