@@ -11,7 +11,7 @@ from neattime import neattime
 import re
 import argparse
 
-num_files_for_test = 3
+NUM_FILES_TO_TEST = 3
 
 url_root = "https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/CURRENT-Full/SDF/"
 
@@ -43,14 +43,14 @@ def main(args):
     print(f"Data will be saved to {data_save_dir}")
 
     if args.test:
-        print('-'*100, f'\nRunning in test mode. Only downloading {num_files_for_test} files.')
+        print('-'*100, f'\nRunning in test mode. Only downloading {NUM_FILES_TO_TEST} files.')
         print('-'*100)
 
     print("Retrieving all gzip urls")
     urls = get_all_gzip_urls(url_root)
 
     if args.test:
-        urls = urls[:num_files_for_test]
+        urls = urls[:NUM_FILES_TO_TEST]
 
     num_urls = len(urls)
 
@@ -97,7 +97,7 @@ def main(args):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--test', action='store_true', help=f'Run in test mode. Only download {num_files_for_test} files.')
+    parser.add_argument('--test', action='store_true', help=f'Run in test mode. Only download {NUM_FILES_TO_TEST} files.')
     return parser.parse_args()
 
 if __name__ == '__main__':
