@@ -1,5 +1,5 @@
 """
-Extract properties of interest from .sdf.gz files obtained from Pubchem in a directory and save them as individual .csv files.
+Extract properties of interest from .sdf.gz files obtained from Pubchem in a directory and save them as individual .zst files.
 
 This workflow supports multiprocessing and can be run in test mode.
 
@@ -73,8 +73,8 @@ def process_gzipped_sdf_file(gzipped_sdf_filepath: str, test: bool = False) -> d
     return data
 
 
-def save_data_to_csv(data: dict, output_dir: str, filename: str) -> None:
-    """Save data in the form of a dictionary to a csv file
+def save_data_to_zst(data: dict, output_dir: str, filename: str) -> None:
+    """Save data in the form of a dictionary to a compressed zst file
 
     Note: output_dir and filename are combined to form the full path to the file
 
@@ -88,14 +88,14 @@ def save_data_to_csv(data: dict, output_dir: str, filename: str) -> None:
 
     filepath = os.path.join(output_dir, filename)
 
-    df.write_csv(filepath)
+    df.write_parquet(file=filepath, compression = 'zstd', compression_level=8)
 
     print(f'Saved data to {os.path.join(output_dir, filename)}')
 
 
 def process_gzipped_sdf_file_and_save(gzipped_sdf_filepath: str, output_dir: str, test: bool = False):
-    f"""Process a gzipped .sdf file and save the data to a csv file. This is a convenience function needed for multiprocessing.
-    It should mimic the behavior of the single process version by combining the process_gzipped_sdf_file and save_data_to_csv functions.
+    f"""Process a gzipped .sdf file and save the data to a zst file. This is a convenience function needed for multiprocessing.
+    It should mimic the behavior of the single process version by combining the process_gzipped_sdf_file and save_data_to_zst functions.
 
     Args:
         gzipped_sdf_filepath (str): path to the gzipped .sdf file
@@ -104,9 +104,9 @@ def process_gzipped_sdf_file_and_save(gzipped_sdf_filepath: str, output_dir: str
     """
     data = process_gzipped_sdf_file(gzipped_sdf_filepath, test=test)
 
-    filename = os.path.basename(gzipped_sdf_filepath).replace('.sdf.gz', '.csv')
+    filename = os.path.basename(gzipped_sdf_filepath).replace('.sdf.gz', '.zst')
 
-    save_data_to_csv(data, output_dir, filename)
+    save_data_to_zst(data, output_dir, filename)
 
     print(f'Processed {gzipped_sdf_filepath}')
 
@@ -135,9 +135,9 @@ def main(args):
         for i, gzipped_sdf_filename in enumerate(tqdm(gzipped_sdf_filenames, desc='Processing .sdf.gz files')):
             data = process_gzipped_sdf_file(gzipped_sdf_filepath=os.path.join(args.input_dir, gzipped_sdf_filename), test=args.test)
 
-            out_filename = gzipped_sdf_filename.replace('.sdf.gz', '.csv')
+            out_filename = gzipped_sdf_filename.replace('.sdf.gz', '.zst')
 
-            save_data_to_csv(data, args.output_dir, out_filename)
+            save_data_to_zst(data, args.output_dir, out_filename)
 
             if args.test and i == 4:
                 break
@@ -166,7 +166,7 @@ def main(args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Extracts properties from .sdf.gz files obtained from Pubchem in a directory and saves them as individual .csv files')
+    parser = argparse.ArgumentParser(description='Extracts properties from .sdf.gz files obtained from Pubchem in a directory and saves them as individual .zst files')
     parser.add_argument('--input_dir', type=str, required=True, help='Directory containing pubchem data as .sdf.gz')
     parser.add_argument('--output_dir', type=str, required=False, default=None, help='Directory to save the extracted data')
     parser.add_argument('--num_processes', type=int, default=-1, help='Number of processes to use. -1 means use all available cores')
