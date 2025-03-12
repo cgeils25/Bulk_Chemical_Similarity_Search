@@ -24,9 +24,12 @@ def filter_tanimoto_results(tanimoto_directory: str, threshold: float, test: boo
     Returns:
         pl.DataFrame: a polars DataFrame containing the filtered Tanimoto results
     """
+    print('Collecting paths to Tanimoto result files...')
     tanimoto_result_filepaths = [os.path.join(tanimoto_directory, filename) for filename in os.listdir(tanimoto_directory) if filename.endswith('.zst')]
+    print(f'Collected {len(tanimoto_result_filepaths)} Tanimoto result files.')
 
     if test:
+        print(f'Running in test mode. Processing only {NUM_FILES_TO_TEST} files and {NUM_MOLS_TO_TEST} compounds.')
         tanimoto_result_filepaths = tanimoto_result_filepaths[:NUM_FILES_TO_TEST]
 
     print('Initalizing query...')
