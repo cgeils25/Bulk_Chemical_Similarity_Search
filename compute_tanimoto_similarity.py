@@ -283,7 +283,7 @@ def parse_args():
     parser.add_argument(
         "--remove_salts",
         action="store_true",
-        help="Whether to remove salts from the PubChem molecules prior to generating morgan fingerprints and computing tanimoto similarity. This is recommended if you are searching for similar organics.",
+        help="Whether to remove salts from BOTH the PubChem molecules and the comparison dataset molecules prior to generating morgan fingerprints and computing tanimoto similarity. This is recommended if you are searching for similar organics.",
     )
     parser.add_argument(
         '--num_processes', 
