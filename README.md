@@ -6,11 +6,7 @@ I tried my best to optimize this with parallelization and file compression to re
 
 ## Setup
 
-### With Docker
-
-For reproducibility, you can build a docker container for this project. 
-
-### Without Docker
+### No Containerization via Docker
 
 The environment for this project is managed with uv. If you don't have uv installed, [view the instructions for installing uv.](https://docs.astral.sh/uv/getting-started/installation/)
 
@@ -19,6 +15,12 @@ Once uv is installed, build a suitable environment with:
 ```bash
 uv sync
 ```
+
+### With Docker
+
+For reproducibility, you can build a docker container for this project. 
+
+I personally just ran `docker build -t bcss .` and then [ran and attached to the container with VS Code](https://code.visualstudio.com/docs/devcontainers/attach-container), but you could do whatever you want with it.
 
 ## Tests
 
@@ -30,17 +32,20 @@ Example:
 uv run python -u download_pubchem_compounds.py --test
 ```
 
-This will only download the first 3 compound files from pubchem.
+This will only download the first 3 compound files from pubchem (out of 346 as of March 2025).
 
 ## Usage
 
 ### To Run the Pipeline in Stages
 
-There are 4 components, which I ran one after another. You could string these together in one shell script by specifying input and output directory names, although I wouldn't recommend it because you really only want to do steps 1 and 2 one time. 
+There are 4 components which are run one after another. You could string these together in one shell script by specifying input and output directory names, although I wouldn't recommend it because you really only want to do steps 1 and 2 one time. 
 
 1. `download_pubchem_compounds.py` - downloads every compound available on PubChem (119M as of March 2025) as a collection of .sdf.gz files
+
 2. `extract_data_from_pubchem_sdf.py` - extracts relevant information for each molecule in PubChem .sdf.gz files and saves as parquet (.zst) files. See PROPERTIES_TO_EXTRACT_FROM_MOLS to add / remove properties. The most important is PUBCHEM_SMILES which is used to generate morgan fingerprints
-3. `compute_tanimoto_similarity.py` - computes pairwise tanimoto similarity between every compound 
+
+3. `compute_tanimoto_similarity.py` - computes pairwise tanimoto similarity between every compound on PubChem and in a specified dataset
+
 4. `filter_tanimoto_results.py` - filter for PubChem compounds with at least one Tanimoto similarity score above a given threshold. 
 
 To view instructions and information about command line arguments for each file, add the '--help' flag. 
