@@ -14,3 +14,4 @@ filter_tanimoto.sh
 filtered_tanimoto_similarity_results
 extract_pubchem.sh
 personal
+.venv
