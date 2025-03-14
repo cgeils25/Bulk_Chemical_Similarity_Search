@@ -11,6 +11,8 @@ from neattime import neattime
 import re
 import argparse
 
+from utils import print_args
+
 NUM_FILES_TO_TEST = 3
 
 url_root = "https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/CURRENT-Full/SDF/"
@@ -34,25 +36,9 @@ def get_all_gzip_urls(url_root: str) -> list:
     full_urls = [url_root + u for u in urls]
     return full_urls
 
-def main(args):
-    if args.output_dir:
-        output_dir = args.output_dir
-    else:
-        output_dir = f'pubchem_data/{'TEST_' if args.test else 'full_download_'}{neattime()}/'
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    print(f"Data will be saved to {output_dir}")
-
-    if args.test:
-        print('-'*100, f'\nRunning in test mode. Only downloading {NUM_FILES_TO_TEST} files.')
-        print('-'*100)
-
-    print("Retrieving all gzip urls")
-    urls = get_all_gzip_urls(url_root)
-
-    if args.test:
+def download_pubchem_compounds(urls: list, output_dir: str, test: bool) -> None:
+    if test:
+        print(f'Running in test mode. Only downloading {NUM_FILES_TO_TEST} files.')
         urls = urls[:NUM_FILES_TO_TEST]
 
     num_urls = len(urls)
@@ -97,6 +83,30 @@ def main(args):
                 print(f'#{i}: url: {url}, status code: {status_code}')
     else:
         print('No failed requests.')
+
+
+def main(args):
+    if args.output_dir:
+        output_dir = args.output_dir
+    else:
+        output_dir = f'pubchem_data/{'TEST_' if args.test else 'full_download_'}{neattime()}/'
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    print(f"Data will be saved to {output_dir}")
+
+    if args.test:
+        print('-'*100, f'\nRunning in test mode. Only downloading {NUM_FILES_TO_TEST} files.')
+        print('-'*100)
+    
+    print_args(args)
+
+    print("Retrieving all gzip urls")
+    urls = get_all_gzip_urls(url_root)
+
+    download_pubchem_compounds(urls, output_dir, args.test)
+    
 
 def parse_args():
     parser = argparse.ArgumentParser()
