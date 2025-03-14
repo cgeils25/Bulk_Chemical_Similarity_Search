@@ -13,6 +13,7 @@ import polars as pl
 import multiprocessing as mp
 from tqdm import tqdm
 import warnings
+from rdkit.Chem.SaltRemover import SaltRemover 
 
 from rdkit import Chem, RDLogger
 from rdkit.Chem import rdFingerprintGenerator
@@ -31,7 +32,7 @@ from extract_data_from_pubchem_sdf import PROPERTIES_TO_EXTRACT_FROM_MOLS
 os.environ['PYTHONWARNINGS'] = 'ignore:resource_tracker'
 
 
-def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, radius: int, disable_tqdm: bool = False) -> np.ndarray:
+def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, radius: int, remove_salts: bool, disable_tqdm: bool = False) -> np.ndarray:
     """Generate a matrix conaining morgan fingerprints from a list of SMILES strings
 
     Each row in the output corresponds to a fingerprint from one SMILES string
@@ -40,11 +41,14 @@ def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, 
         smiles_list (list): a list of SMILES strings
         fingerprint_size (int, optional): the length of the morgan fingerprint.
         radius (int, optional): radius of the morgan fingerprint. This determines the number of bonds away from a central atom to consider when extracting substructures to embed.
+        remove_salts (bool, optional): whether or not to remove salts from the molecules.
         disable_tqdm (bool, optional): whether or not to display loading bars. Defaults to False.
 
     Returns:
         np.ndarray: a matrix of shape (len(smiles_list), fingerprint_size) containing the morgan fingerprints
     """
+    breakpoint()
+
     fingerprint_generator = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=fingerprint_size)
     
     num_mols = len(smiles_list)
@@ -52,6 +56,12 @@ def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, 
     fingerprint_matrix = np.zeros((num_mols, fingerprint_size), dtype=np.int8)
 
     mols = [Chem.MolFromSmiles(smiles) for smiles in smiles_list]
+
+    if remove_salts:
+        print('remove_salts set to True. Removing salts from molecules...')
+        salt_remover = SaltRemover()
+        mols = [salt_remover.StripMol(mol) for mol in mols]
+        print('Salts removed from molecules.')
     
     for i, mol in enumerate(tqdm(mols, desc='Computing fingerprints', disable=disable_tqdm)):
         
@@ -116,7 +126,7 @@ def get_comparison_smiles_list(filepath: str) -> list:
 
 
 def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extracted_pubchem_data_filepath: str, 
-                   output_dir: str, fingerprint_size: int, radius: int, test: bool = False, disable_tqdm: bool = False) -> None:
+                   output_dir: str, fingerprint_size: int, radius: int, remove_salts: bool, test: bool = False, disable_tqdm: bool = False) -> None:
         """Run a Tanimoto similarity search between a comparison dataset and PubChem compounds and save the results
 
         Args:
@@ -137,9 +147,11 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
         if test:
             pubchem_smiles_list = pubchem_smiles_list[:NUM_MOLS_TO_TEST]
         
-        pubchem_fingerprint_matrix = smiles_list_to_fingerprint_matrix(pubchem_smiles_list, fingerprint_size, radius, disable_tqdm=disable_tqdm)
+        pubchem_fingerprint_matrix = smiles_list_to_fingerprint_matrix(smiles_list=pubchem_smiles_list, fingerprint_size=fingerprint_size, 
+                                                                       radius=radius, remove_salts=remove_salts, disable_tqdm=disable_tqdm)
         
-        comparison_fingerprint_matrix = smiles_list_to_fingerprint_matrix(comparison_smiles_list, fingerprint_size, radius, disable_tqdm=disable_tqdm) # This gets computed multiple times because I don't think you can pickle it for multiprocessing. Idk ig I should test at some point
+        comparison_fingerprint_matrix = smiles_list_to_fingerprint_matrix(smiles_list=comparison_smiles_list, fingerprint_size=fingerprint_size,
+                                                                          radius=radius, remove_salts=remove_salts, disable_tqdm=disable_tqdm) # This gets computed multiple times because I don't think you can pickle it for multiprocessing. Idk ig I should test at some point
         
         tanimoto_similarity_matrix = compute_tanimoto_similarity_matrix(pubchem_fingerprint_matrix, comparison_fingerprint_matrix)
         
@@ -213,6 +225,7 @@ def main(args):
                                  [args.output_dir] * num_pubchem_files, 
                                  [args.fingerprint_size] * num_pubchem_files, 
                                  [args.radius] * num_pubchem_files, 
+                                [args.remove_salts] * num_pubchem_files,
                                  [args.test] * num_pubchem_files,
                                 [True] * num_pubchem_files))
         
@@ -257,6 +270,11 @@ def parse_args():
         type=int,
         default=3,
         help="Radius of the morgan fingerprint aka the number of bonds away from a central atom to consider when extracting substructures to embed",
+    )
+    parser.add_argument(
+        "--remove_salts",
+        action="store_true",
+        help="Whether to remove salts from the PubChem molecules. This is recommended if you are searching for similar organics.",
     )
     parser.add_argument(
         '--num_processes', 
