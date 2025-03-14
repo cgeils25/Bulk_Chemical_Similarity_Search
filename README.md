@@ -2,6 +2,8 @@
 
 This is a data pipeline I developed for my research which downloads, extracts data from, and runs a tanimoto similarity search on every compound available on PubChem.
 
+I used it to identify new organic cations to use to synthesize Hybrid Organic-Inorganic Halide Perovskites, but it could be adapted to your needs by editing one or more of the stages specified in 'Usage'
+
 I tried my best to optimize this with parallelization and file compression to reduce storage requirements, but you could probably push things further by writing in C/C++ and with some more clever tricks. I skipped this because I had to publish my paper eventually...
 
 ## Setup
@@ -61,7 +63,13 @@ Output:
 ```
 usage: download_pubchem_compounds.py [-h] [--test] [--output_dir OUTPUT_DIR]
 
-Download all PubChem compounds as .sdf.gz files from the pubchem ftp site (https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/CURRENT-Full/SDF/)
+Download all PubChem compounds as .sdf.gz files from the pubchem ftp site (https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/CURRENT-Full/SDF/) 
+
+FYI this ended up being 111 GB of compressed (.gz) files for me. Uncompressed, I calculated it would be 909.8 GB, although my implementation leaves the files themselves
+compressed while processing them. 
+
+Add a -u flag (python -u ...) if you're writing to a log file to ensure that the output is not buffered. Otherwise,
+python will just print may just print everything at the script's exit
 
 options:
   -h, --help            show this help message and exit
