@@ -6,19 +6,13 @@ I tried my best to optimize this with parallelization and file compression to re
 
 ## Setup
 
-The environment for this project is managed with conda. If you don't have conda installed, [view the instructions to download miniconda first](https://www.anaconda.com/docs/getting-started/miniconda/install).
+### With Docker
 
-Once conda is installed, run the following to build a suitable environment:
+For reproducibility, you can build a docker container for this project. 
 
-```bash
-conda env create --file requirements.yml
-```
+### Without Docker
 
-Next, activate the environment with:
-
-```bash
-conda activate bss
-```
+The environment for this project is managed with uv. If you don't have uv installed, [view the instructions for installing uv.](https://docs.astral.sh/uv/getting-started/installation/)
 
 ## Tests
 
@@ -34,59 +28,33 @@ This will only download the first 3 compound files from pubchem.
 
 ## Usage
 
-### To Run the Entire Pipeline at Once
+### To Run the Pipeline in Stages
 
-Run: 
+There are 4 components, which I ran one after another. You could string these together in one shell script by specifying input and output directory names, although I wouldn't recommend it because you really only want to do steps 1 and 2 one time. 
 
-```bash
-source run_full_pipeline.sh
-```
+1. `download_pubchem_compounds.py` - downloads every compound available on PubChem (119M as of March 2025) as a collection of .sdf.gz files
+2. `extract_data_from_pubchem_sdf.py` - extracts relevant information for each molecule in PubChem .sdf.gz files and saves as parquet (.zst) files. See PROPERTIES_TO_EXTRACT_FROM_MOLS to add / remove properties. The most important is PUBCHEM_SMILES which is used to generate morgan fingerprints
+3. `compute_tanimoto_similarity.py` - computes pairwise tanimoto similarity between every compound 
+4. `filter_tanimoto_results.py` - filter for PubChem compounds with at least one Tanimoto similarity score above a given threshold. 
 
-TODO add some args to this script so users can specify their dataset, threshold, number of cores, etc.
+To view instructions and information about command line arguments for each file, add the '--help' flag. 
 
-### To Run it in Stages
-
-To download every compound available through pubchem as an SDF file, run:
-
-```bash
-python -u download_pubchem_compounds.py
-```
-
-(the -u flag is only important if you're writing to a log file. Without it, python just prints everything once the process finishes rather than continuously)
-
-FYI this ended up being 111 GB of compressed (.gz) files for me. Uncompressed, I calculated it would be 909.8 GB, although my implementation leaves the files themselves compressed while processing them.
-
-Next, to extract relevant data (SMILES, pubchem Id, etc.) from the resulting sdf files with parallelization, run:
+Example:
 
 ```bash
-python -u extract_data_from_pubchem_sdf.py --input_dir ... --num_processes -1
+uv run python download_pubchem_compounds.py --help
 ```
 
-Where '...' is the path to the directory containing the output of `download_pubchem_compounds.py`
+Output:
 
-Next, to compute the pairwise tanimoto similarity between compounds in your dataset and every compound on pubchem, run:
-
-```bash
-python -u compute_tanimoto_similarity.py \
-    --comparison_dataset test_comparison_dataset.csv \
-    --extracted_pubchem_data_dir ... \
-    --num_processes 8
 ```
+usage: download_pubchem_compounds.py [-h] [--test] [--output_dir OUTPUT_DIR]
 
-Where '...' is the path to the directory containing the output of `extract_data_from_pubchem_sdf.py`
+Download all PubChem compounds as .sdf.gz files from the pubchem ftp site (https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/CURRENT-Full/SDF/)
 
-You can replace `test_comparison_dataset.csv` with your data. It should contain a column named "smiles" whose rows are SMILES strings. 
-
-NOTE: be careful with the number of processes for `compute_tanimoto_similarity.py`. When running this on an HPC node with a 48-core intel xeon and 196 GB of RAM, the highest I could do while remaining stable was 16. This is the most memory-intense part of the pipeline so adjust to your needs.  
-
-Finally, filter out compounds without at least one tanimoto similarity score above a given threshold (here 0.8), run:
-
-```bash
-python filter_tanimoto_results.py \
-    --tanimoto_directory ... \
-    --threshold 0.8
+options:
+  -h, --help            show this help message and exit
+  --test                Run in test mode. Only download 3 files.
+  --output_dir OUTPUT_DIR
+                        Directory to save the downloaded files. If not specified, will be saved to pubchem_data/ with a timestamp.
 ```
-
-Where '...' is the path to the directory containing the output of `tanimoto_similarity_search.py`
-
-This last step is of course optional and you could really do whatever you want with the computed tanimoto scores
