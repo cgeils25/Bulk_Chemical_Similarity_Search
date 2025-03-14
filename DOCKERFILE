@@ -12,16 +12,11 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
 # Ensure the installed binary is on the `PATH`
 ENV PATH="/root/.local/bin/:$PATH"
 
-# build the uv environment with all dependencies
-RUN uv sync 
-
 # copy the current directory contents into the container 
 COPY . .
 
-# install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# build the uv environment with all dependencies
+RUN uv sync 
 
 # expose port 80
 EXPOSE 80
-
-
