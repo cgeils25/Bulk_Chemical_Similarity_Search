@@ -166,11 +166,11 @@ def main(args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Extracts properties from .sdf.gz files obtained from Pubchem in a directory and saves them as individual .zst files')
-    parser.add_argument('--input_dir', type=str, required=True, help='Directory containing pubchem data as .sdf.gz')
-    parser.add_argument('--output_dir', type=str, required=False, default=None, help='Directory to save the extracted data')
+    parser = argparse.ArgumentParser(description=f'Extracts properties specified by PROPERTIES_TO_EXTRACT_FROM_MOLS ({PROPERTIES_TO_EXTRACT_FROM_MOLS}) from .sdf.gz files for each molecule obtained from Pubchem in a directory and saves them as individual .zst files')
+    parser.add_argument('--input_dir', type=str, required=True, help='Directory containing pubchem data files as .sdf.gz')
+    parser.add_argument('--output_dir', type=str, required=False, default=None, help='Directory to save the extracted data. If not specified, will be saved to extracted_pubchem_data/ with a timestamp')
     parser.add_argument('--num_processes', type=int, default=-1, help='Number of processes to use. -1 means use all available cores')
-    parser.add_argument('--test', action='store_true', help='Test mode.')
+    parser.add_argument('--test', action='store_true', help=f'Test mode. Only process {NUM_FILES_TO_TEST} files and {NUM_MOLS_TO_TEST} molecules. This is useful for debugging and testing the pipeline. The output will be saved to a directory with TEST_ prefix')
     return parser.parse_args()
 
 

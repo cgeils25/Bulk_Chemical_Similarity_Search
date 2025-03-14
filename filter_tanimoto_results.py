@@ -70,9 +70,9 @@ def main(args):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Filter results of tanimoto similarity search to only include PubChem compounds with at least one score above a specified threshold')
+    parser = argparse.ArgumentParser(description='Filter results of tanimoto similarity search to only include PubChem compounds with at least one score above a specified threshold.')
     parser.add_argument('--tanimoto_directory', type=str, required=True, help='Directory containing the Tanimoto result files')
-    parser.add_argument('--output_directory', type=str, default='filtered_tanimoto_similarity_results', help='Directory to save the filtered results. Will be stored as a single csv')
+    parser.add_argument('--output_directory', type=str, default='filtered_tanimoto_similarity_results', help='Directory to save the filtered results. Will be stored as a single csv.')
     parser.add_argument('--output_filename', type=str, default=f'filtered_tanimoto_results_{neattime()}.csv', help='Filename for the filtered results')
     parser.add_argument('--threshold', type=float, default=0.8, help='Threshold for filtering out low scores. Final output will only contain scores above this threshold.')
     parser.add_argument('--test', action='store_true', help='Run in test mode (process only a subset of files and compounds)')

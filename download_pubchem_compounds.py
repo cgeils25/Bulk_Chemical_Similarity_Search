@@ -106,10 +106,15 @@ def main(args):
     urls = get_all_gzip_urls(url_root)
 
     download_pubchem_compounds(urls, output_dir, args.test)
-    
+
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=f'''Download all PubChem compounds as .sdf.gz files from the pubchem ftp site ({url_root})
+                                     
+                                     FYI this ended up being 111 GB of compressed (.gz) files for me. Uncompressed, I calculated it would be 909.8 GB, although my implementation leaves the files themselves compressed while processing them.\n\n
+
+                                     Add a -u flag (python -u ...) if you're writing to a log file to ensure that the output is not buffered. Otherwise, python will just print may just print everything at the script's exit
+                                     ''')
     parser.add_argument('--test', action='store_true', help=f'Run in test mode. Only download {NUM_FILES_TO_TEST} files.')
     parser.add_argument('--output_dir', type=str, default=None, help='Directory to save the downloaded files. If not specified, will be saved to pubchem_data/ with a timestamp.')
     return parser.parse_args()

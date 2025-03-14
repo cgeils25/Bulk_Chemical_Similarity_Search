@@ -248,7 +248,11 @@ def main(args):
         
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Run a Tanimoto similarity search")
+    parser = argparse.ArgumentParser(description='''Compute pairwise tanitotomo similarity between a comparison dataset and PubChem compounds, then save results as multiple .zst files
+                                     
+                                     NOTE: be careful with the number of processes for `compute_tanimoto_similarity.py`. When running this on an HPC node with a 48-core intel xeon and 196 GB of RAM, the highest I could do while remaining stable was 16. 
+                                     This is the most memory-intense part of the pipeline so adjust to your needs. It seems that polars becomes unstable when combined with python multiprocessing.
+                                     ''')
     parser.add_argument(
         "--comparison_dataset",
         type=str,
@@ -266,7 +270,7 @@ def parse_args():
         type=str,
         required=False,
         default=None,
-        help="Path to the output directory where the similarity data will be saved.",
+        help="Path to the output directory where the similarity data will be saved. If not specified, will be saved to tanimoto_similarity_results/ with a timestamp.",
     )
     parser.add_argument(
         "--fingerprint_size",
@@ -294,7 +298,7 @@ def parse_args():
     parser.add_argument(
         '--test', 
         action='store_true', 
-        help='Test mode.'
+        help=f'Test mode. Only process {NUM_FILES_TO_TEST} files and {NUM_MOLS_TO_TEST} molecules'
     )
     
     args = parser.parse_args()
