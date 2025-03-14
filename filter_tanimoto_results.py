@@ -8,6 +8,8 @@ import polars as pl
 
 from neattime import neattime
 
+from utils import print_args
+
 NUM_FILES_TO_TEST = 5
 NUM_MOLS_TO_TEST = 100
 
@@ -49,8 +51,15 @@ def main(args):
     os.makedirs(args.output_directory, exist_ok=True)
 
     if args.test:
+        print('-'*100)
+        print('Running in test mode. Output filename will be prefixed with TEST_')
         args.output_filename = f'TEST_{args.output_filename}'
-        
+    
+    print('-'*100)
+    print(f'Filtering Tanimoto results with threshold {args.threshold}...')
+    
+    print_args(args)
+
     filtered_tanimoto_results = filter_tanimoto_results(tanimoto_directory=args.tanimoto_directory, threshold=args.threshold, test=args.test)
 
     filtered_tanimoto_results_save_path = os.path.join(args.output_directory, args.output_filename)

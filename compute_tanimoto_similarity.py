@@ -21,6 +21,8 @@ RDLogger.DisableLog('rdApp.*') # ignore rdkit's warnings
 
 from neattime import neattime
 
+from utils import print_args
+
 NUM_FILES_TO_TEST = 5
 NUM_MOLS_TO_TEST = 100
 
@@ -178,6 +180,15 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
         
 
 def main(args):
+    if args.test:
+        print('-'*100)
+        print(f'Running in test mode. Only processing {NUM_FILES_TO_TEST} files and {NUM_MOLS_TO_TEST} molecules')
+    
+    print('-'*100)
+    print('Running Tanimoto similarity search')
+    
+    print_args(args)
+
     comparison_smiles_list = get_comparison_smiles_list(args.comparison_dataset)
 
     if args.test:
