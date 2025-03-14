@@ -14,6 +14,12 @@ For reproducibility, you can build a docker container for this project.
 
 The environment for this project is managed with uv. If you don't have uv installed, [view the instructions for installing uv.](https://docs.astral.sh/uv/getting-started/installation/)
 
+Once uv is installed, build a suitable environment with:
+
+```bash
+uv sync
+```
+
 ## Tests
 
 For each of the commands in 'Usage' (aside from `source run_full_pipeline.sh`), add the --test flag to the end of the command to run a smaller version of the workflow for testing purposes.
@@ -21,7 +27,7 @@ For each of the commands in 'Usage' (aside from `source run_full_pipeline.sh`), 
 Example:
 
 ```bash
-python -u download_pubchem_compounds.py --test
+uv run python -u download_pubchem_compounds.py --test
 ```
 
 This will only download the first 3 compound files from pubchem.
