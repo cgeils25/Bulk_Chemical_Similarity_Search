@@ -47,8 +47,6 @@ def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, 
     Returns:
         np.ndarray: a matrix of shape (len(smiles_list), fingerprint_size) containing the morgan fingerprints
     """
-    breakpoint()
-
     fingerprint_generator = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=fingerprint_size)
     
     num_mols = len(smiles_list)
