@@ -26,7 +26,7 @@ I personally just ran `docker build -t bcss .` and then [ran and attached to the
 
 ## Tests
 
-For each of the commands in 'Usage' (aside from `source run_full_pipeline.sh`), add the --test flag to the end of the command to run a smaller version of the workflow for testing purposes.
+For each of the commands in 'Usage', add the --test flag to the end of the command to run a smaller version of the workflow for testing purposes.
 
 Example:
 
