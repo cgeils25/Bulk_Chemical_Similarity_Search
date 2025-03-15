@@ -6,6 +6,7 @@ for more info, run:
 """
 
 import os
+import sys
 import argparse
 import numpy as np
 import polars as pl
@@ -124,6 +125,35 @@ def get_comparison_smiles_list(filepath: str) -> list:
     return smiles_list
 
 
+def extracted_pubchem_data_filename_to_tanimoto_similarity_filename(extracted_pubchem_data_filename) -> str:
+    extracted_pubchem_data_filename = extracted_pubchem_data_filename.replace('.zst', '_tanimoto_similarity.zst')
+
+    return extracted_pubchem_data_filename
+
+def get_incomplete_tanimoto_similarity_files(extracted_pubchem_data_dir: str, output_dir: str) -> list:
+    print(f'Checking for incomplete tanimoto similarity files in {output_dir} based on files found in {extracted_pubchem_data_dir}...')
+
+    extracted_pubchem_data_filenames = os.listdir(extracted_pubchem_data_dir)
+
+    tanimtoto_similarity_filenames = os.listdir(output_dir)
+
+    incomplete_tanimoto_similarity_files = []
+
+    for extracted_pubchem_data_filename in extracted_pubchem_data_filenames:
+        expected_tanimoto_similarity_filename = extracted_pubchem_data_filename_to_tanimoto_similarity_filename(extracted_pubchem_data_filename=extracted_pubchem_data_filename)
+
+        if expected_tanimoto_similarity_filename not in tanimtoto_similarity_filenames:
+            print(f'Found incomplete tanimoto similarity file for {extracted_pubchem_data_filename}. Expected {expected_tanimoto_similarity_filename} but not found in {output_dir}. Adding to list of files to process.')
+            extracted_pubchem_data_filepath = os.path.join(extracted_pubchem_data_dir, extracted_pubchem_data_filename)
+
+            incomplete_tanimoto_similarity_files.append(extracted_pubchem_data_filepath)
+        
+        else:
+            print(f'Found completed tanimoto similarity file for {extracted_pubchem_data_filename} at {expected_tanimoto_similarity_filename}. Skipping.')
+    
+    return incomplete_tanimoto_similarity_files
+
+
 def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extracted_pubchem_data_filepath: str, 
                    output_dir: str, fingerprint_size: int, radius: int, remove_salts: bool, test: bool = False) -> None:
         """Run a Tanimoto similarity search between a comparison dataset and PubChem compounds and save the results
@@ -167,15 +197,17 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
                 tanimoto_similarity_df.insert_column(index=i, column=pl.Series(name=property, values=property_values))
             else:
                 print(f'Warning: Property {property} not found in {extracted_pubchem_data_filepath}. Skipping.')
-        
-        extracted_pubchem_data_filename = os.path.basename(extracted_pubchem_data_filepath).replace('.zst', '_tanimoto_similarity.zst')
 
-        save_path = os.path.join(output_dir, extracted_pubchem_data_filename) 
+        extracted_pubchem_data_filename = os.path.basename(extracted_pubchem_data_filepath)
+
+        tanimoto_similarity_filename = extracted_pubchem_data_filename_to_tanimoto_similarity_filename(extracted_pubchem_data_filename=extracted_pubchem_data_filename)
+
+        tanimoto_similarity_save_path = os.path.join(output_dir, tanimoto_similarity_filename)
 
         # save a compressed parquet file. My experiments show about a 2x compression rate for the test run with zstd and compression level 8 
-        tanimoto_similarity_df.write_parquet(file=save_path, compression = 'zstd', compression_level=8) # zstd compression recommended by polars for good compression performance: https://docs.pola.rs/api/python/dev/reference/api/polars.DataFrame.write_parquet.html
+        tanimoto_similarity_df.write_parquet(file=tanimoto_similarity_save_path, compression = 'zstd', compression_level=8) # zstd compression recommended by polars for good compression performance: https://docs.pola.rs/api/python/dev/reference/api/polars.DataFrame.write_parquet.html
 
-        print(f'Saved tanimoto similarity between {extracted_pubchem_data_filepath} and {comparison_dataset} to {save_path}')
+        print(f'Saved tanimoto similarity between {extracted_pubchem_data_filepath} and {comparison_dataset} to {tanimoto_similarity_save_path}')
         
 
 def main(args):
@@ -195,12 +227,25 @@ def main(args):
 
     if args.output_dir is None:
         args.output_dir = f'tanimoto_similarity_results/{'TEST_' if args.test else 'full_tanimoto_'}{neattime()}'
+
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
-    extracted_pubchem_data_filenames = os.listdir(args.extracted_pubchem_data_dir)
+    # get the ones that aren't already done
+    if args.cleanup:
+        extracted_pubchem_data_filepaths = get_incomplete_tanimoto_similarity_files(extracted_pubchem_data_dir=args.extracted_pubchem_data_dir, output_dir=args.output_dir)
 
-    extracted_pubchem_data_filepaths = [os.path.join(args.extracted_pubchem_data_dir, filename) for filename in extracted_pubchem_data_filenames]
+        if len(extracted_pubchem_data_filepaths) == 0:
+
+            print(f'No incomplete tanimoto similarity files found in {args.output_dir}. Exiting.')
+
+            sys.exit(0)
+    
+    # if not cleanup, just prepare to compute similarity for all of them
+    else:
+        extracted_pubchem_data_filenames = os.listdir(args.extracted_pubchem_data_dir)
+
+        extracted_pubchem_data_filepaths = [os.path.join(args.extracted_pubchem_data_dir, filename) for filename in extracted_pubchem_data_filenames]
 
     if args.num_processes == 1:
         print('Using a single process')
@@ -227,7 +272,7 @@ def main(args):
         print(f'Using {num_processes} processes')
 
         # is there a less dumb way to do this?
-        num_pubchem_files = len(extracted_pubchem_data_filenames)
+        num_pubchem_files = len(extracted_pubchem_data_filepaths)
 
         inputs_zipped = list(zip([comparison_smiles_list] * num_pubchem_files,
                                 [args.comparison_dataset] * num_pubchem_files,
@@ -294,6 +339,11 @@ def parse_args():
         type=int, 
         default=-1, 
         help='Number of processes to use. -1 means use all available cores'
+    )
+    parser.add_argument(
+        '--cleanup',
+        action='store_true',
+        help='Whether to search the output directory for completed tanimoto similarity results and only compute the ones that are missing. Useful for resuming a job that was interrupted or froze.'
     )
     parser.add_argument(
         '--test', 
