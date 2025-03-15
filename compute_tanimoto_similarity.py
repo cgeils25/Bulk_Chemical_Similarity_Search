@@ -6,12 +6,10 @@ for more info, run:
 """
 
 import os
-import subprocess
 import argparse
 import numpy as np
 import polars as pl
 import multiprocessing as mp
-from tqdm import tqdm
 import warnings
 from rdkit.Chem.SaltRemover import SaltRemover 
 
@@ -34,7 +32,7 @@ from extract_data_from_pubchem_sdf import PROPERTIES_TO_EXTRACT_FROM_MOLS
 os.environ['PYTHONWARNINGS'] = 'ignore:resource_tracker'
 
 
-def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, radius: int, remove_salts: bool, disable_tqdm: bool = False) -> np.ndarray:
+def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, radius: int, remove_salts: bool) -> np.ndarray:
     """Generate a matrix conaining morgan fingerprints from a list of SMILES strings
 
     Each row in the output corresponds to a fingerprint from one SMILES string
@@ -44,7 +42,6 @@ def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, 
         fingerprint_size (int, optional): the length of the morgan fingerprint.
         radius (int, optional): radius of the morgan fingerprint. This determines the number of bonds away from a central atom to consider when extracting substructures to embed.
         remove_salts (bool, optional): whether or not to remove salts from the molecules.
-        disable_tqdm (bool, optional): whether or not to display loading bars. Defaults to False.
 
     Returns:
         np.ndarray: a matrix of shape (len(smiles_list), fingerprint_size) containing the morgan fingerprints
@@ -63,7 +60,9 @@ def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, 
         mols = [salt_remover.StripMol(mol) for mol in mols]
         print('Salts removed from molecules.')
     
-    for i, mol in enumerate(tqdm(mols, desc='Computing fingerprints', disable=disable_tqdm)):
+    print('Computing morgan fingerprints...')
+    
+    for i, mol in enumerate(mols):
         
         if mol is None:
             print(f'Warning: Invalid SMILES at index {i}: {smiles_list[i]}')
@@ -126,7 +125,7 @@ def get_comparison_smiles_list(filepath: str) -> list:
 
 
 def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extracted_pubchem_data_filepath: str, 
-                   output_dir: str, fingerprint_size: int, radius: int, remove_salts: bool, test: bool = False, disable_tqdm: bool = False) -> None:
+                   output_dir: str, fingerprint_size: int, radius: int, remove_salts: bool, test: bool = False) -> None:
         """Run a Tanimoto similarity search between a comparison dataset and PubChem compounds and save the results
 
         Args:
@@ -136,8 +135,8 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
             output_dir (str): path to the directory where the results will be saved
             fingerprint_size (int): size of the morgan fingerprint
             radius (int): radius of the morgan fingerprint
+            remove_salts (bool): whether or not to remove salts from the molecules
             test (bool, optional): whether to run in test mode (will only process a small sample of the data). Defaults to False.
-            disable_tqdm (bool, optional): whether or not to display loading bars. Defaults to False.
         """
         print(f'Running tanimoto similarity computation between {extracted_pubchem_data_filepath} and {comparison_dataset}')
         extracted_pubchem_data_df = pl.read_parquet(source=extracted_pubchem_data_filepath)
@@ -148,10 +147,10 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
             pubchem_smiles_list = pubchem_smiles_list[:NUM_MOLS_TO_TEST]
         
         pubchem_fingerprint_matrix = smiles_list_to_fingerprint_matrix(smiles_list=pubchem_smiles_list, fingerprint_size=fingerprint_size, 
-                                                                       radius=radius, remove_salts=remove_salts, disable_tqdm=disable_tqdm)
+                                                                       radius=radius, remove_salts=remove_salts)
         
         comparison_fingerprint_matrix = smiles_list_to_fingerprint_matrix(smiles_list=comparison_smiles_list, fingerprint_size=fingerprint_size,
-                                                                          radius=radius, remove_salts=remove_salts, disable_tqdm=disable_tqdm) # This gets computed multiple times because I don't think you can pickle it for multiprocessing. Idk ig I should test at some point
+                                                                          radius=radius, remove_salts=remove_salts) # This gets computed multiple times because I don't think you can pickle it for multiprocessing. Idk ig I should test at some point
         
         tanimoto_similarity_matrix = compute_tanimoto_similarity_matrix(pubchem_fingerprint_matrix, comparison_fingerprint_matrix)
         
@@ -208,7 +207,9 @@ def main(args):
 
         for i, extracted_pubchem_data_filepath in enumerate(extracted_pubchem_data_filepaths):
 
-            run_comparison(comparison_smiles_list, args.comparison_dataset, extracted_pubchem_data_filepath, args.output_dir, args.fingerprint_size, args.radius, args.test)
+            run_comparison(comparison_smiles_list=comparison_smiles_list, comparison_dataset=args.comparison_dataset, 
+                           extracted_pubchem_data_filepath=extracted_pubchem_data_filepath, output_dir=args.output_dir, fingerprint_size=args.fingerprint_size, 
+                           radius=args.radius, remove_salts=args.remove_salts, test=args.test)
             
             if args.test and i == NUM_FILES_TO_TEST - 1:
                 break
@@ -235,8 +236,7 @@ def main(args):
                                  [args.fingerprint_size] * num_pubchem_files, 
                                  [args.radius] * num_pubchem_files, 
                                 [args.remove_salts] * num_pubchem_files,
-                                 [args.test] * num_pubchem_files,
-                                [True] * num_pubchem_files))
+                                 [args.test] * num_pubchem_files))
         
         if args.test:
             inputs_zipped = inputs_zipped[:NUM_FILES_TO_TEST]
