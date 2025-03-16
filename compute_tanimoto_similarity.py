@@ -96,9 +96,9 @@ def compute_tanimoto_similarity_matrix(fingerprint_matrix_1: np.ndarray, fingerp
     A = np.sum(fingerprint_matrix_1, axis=1).reshape(-1, 1)
     B = np.sum(fingerprint_matrix_2, axis=1).reshape(-1, 1)
 
-    distance_matrix = C / (A + B.T - C)
+    tanimoto_similarity_matrix = C / (A + B.T - C)
 
-    return distance_matrix
+    return tanimoto_similarity_matrix
 
 
 def get_comparison_smiles_list(filepath: str) -> list:
