@@ -62,18 +62,23 @@ def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, 
     print('Computing morgan fingerprints...')
     
     for i, smiles in enumerate(smiles_list):
-        mol = Chem.MolFromSmiles(smiles)
+        try:
 
-        if remove_salts:
-            mol = salt_remover.StripMol(mol, dontRemoveEverything = True)
+            mol = Chem.MolFromSmiles(smiles)
 
-        if mol is None:
-            print(f'Warning: Invalid SMILES at index {i}: {smiles_list[i]}')
-        
-        else: 
-            fingerprint = fingerprint_generator.GetFingerprintAsNumPy(mol)
+            if remove_salts:
+                mol = salt_remover.StripMol(mol, dontRemoveEverything = True)
 
-            fingerprint_matrix[i] = np.array(fingerprint)
+            if mol is None:
+                print(f'Mol is none for molecule at index {i} with SMILES: {smiles_list[i]}')
+            
+            else: 
+                fingerprint = fingerprint_generator.GetFingerprintAsNumPy(mol)
+
+                fingerprint_matrix[i] = np.array(fingerprint)
+
+        except Exception as e:
+            print(f'Error processing molecule at index {i} with SMILES: {smiles_list[i]}. Error: {e}')
 
     return fingerprint_matrix
 
