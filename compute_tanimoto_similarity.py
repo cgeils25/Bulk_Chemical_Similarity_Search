@@ -10,7 +10,9 @@ import sys
 import argparse
 import numpy as np
 import polars as pl
+
 import multiprocessing as mp
+
 import warnings
 from rdkit.Chem.SaltRemover import SaltRemover 
 
@@ -53,18 +55,18 @@ def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, 
 
     fingerprint_matrix = np.zeros((num_mols, fingerprint_size), dtype=np.int8)
 
-    mols = [Chem.MolFromSmiles(smiles) for smiles in smiles_list]
-
     if remove_salts:
-        print('remove_salts set to True. Removing salts from molecules...')
         salt_remover = SaltRemover()
-        mols = [salt_remover.StripMol(mol) for mol in mols]
-        print('Salts removed from molecules.')
+        print('remove_salts set to True. Will remove salts from molecules.')
     
     print('Computing morgan fingerprints...')
     
-    for i, mol in enumerate(mols):
-        
+    for i, smiles in enumerate(smiles_list):
+        mol = Chem.MolFromSmiles(smiles)
+
+        if remove_salts:
+            mol = salt_remover.StripMol(mol, dontRemoveEverything = True)
+
         if mol is None:
             print(f'Warning: Invalid SMILES at index {i}: {smiles_list[i]}')
         
