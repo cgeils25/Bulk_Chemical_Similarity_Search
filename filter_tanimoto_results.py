@@ -35,8 +35,10 @@ def filter_tanimoto_results(tanimoto_directory: str, threshold: float, test: boo
         tanimoto_result_filepaths = tanimoto_result_filepaths[:NUM_FILES_TO_TEST]
 
     print('Initalizing query...')
+
     combine_and_filter_query = (
         pl.scan_parquet(tanimoto_result_filepaths)
+        .fill_nan(value=0)
         .filter(pl.any_horizontal(pl.exclude(PROPERTIES_TO_EXTRACT_FROM_MOLS) > threshold))
     )
 
