@@ -162,7 +162,7 @@ def get_incomplete_tanimoto_similarity_files(extracted_pubchem_data_dir: str, ou
 
 
 def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extracted_pubchem_data_filepath: str, 
-                   output_dir: str, fingerprint_size: int, radius: int, remove_salts: bool, test: bool = False) -> None:
+                   output_dir: str, split_molecules: bool, fingerprint_size: int, radius: int, remove_salts: bool, test: bool = False) -> None:
         """Run a Tanimoto similarity search between a comparison dataset and PubChem compounds and save the results
 
         Args:
@@ -170,13 +170,29 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
             comparison_dataset (str): path to the comparison dataset
             extracted_pubchem_data_filepath (str): path to the extracted PubChem data
             output_dir (str): path to the directory where the results will be saved
+            split_molecules (bool): whether or not to split each entry in PubChem in individual molecules before running comparison. SMILES for distinct molecules are separated by a '.' character.
             fingerprint_size (int): size of the morgan fingerprint
             radius (int): radius of the morgan fingerprint
             remove_salts (bool): whether or not to remove salts from the molecules
             test (bool, optional): whether to run in test mode (will only process a small sample of the data). Defaults to False.
         """
         print(f'Running tanimoto similarity computation between {extracted_pubchem_data_filepath} and {comparison_dataset}')
-        extracted_pubchem_data_df = pl.read_parquet(source=extracted_pubchem_data_filepath)
+
+        if split_molecules:
+            # split each of the SMILES strings along the '.' character. Explode the dataframe so that each distinct molecule becomes its own row
+            q = (pl.scan_parquet(extracted_pubchem_data_filepath)
+                 .with_columns(PUBCHEM_SMILES=pl.col('PUBCHEM_SMILES').str.split('.'))
+                 .explode('PUBCHEM_SMILES'))
+            
+            extracted_pubchem_data_df = q.collect()
+
+            # did it work?
+            if extracted_pubchem_data_df['PUBCHEM_SMILES'].str.contains(pattern='.', literal=True).any():
+                warnings.warn('''Warning: Some molecules in the PubChem dataset contain a "." character after splitting. 
+                              This behavior is unexpected and may lead to incorrect results. Please check the data.''')
+
+        else:
+            extracted_pubchem_data_df = pl.read_parquet(source=extracted_pubchem_data_filepath)
         
         pubchem_smiles_list = extracted_pubchem_data_df['PUBCHEM_SMILES'].to_list()
         
@@ -196,6 +212,7 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
         
         for i, property in enumerate(PROPERTIES_TO_EXTRACT_FROM_MOLS):
             if property in extracted_pubchem_data_df.columns:
+    
                 property_values = extracted_pubchem_data_df[property].to_list()
 
                 if test:
@@ -213,6 +230,7 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
 
         # save a compressed parquet file. My experiments show about a 2x compression rate for the test run with zstd and compression level 8 
         tanimoto_similarity_df.write_parquet(file=tanimoto_similarity_save_path, compression = 'zstd', compression_level=8) # zstd compression recommended by polars for good compression performance: https://docs.pola.rs/api/python/dev/reference/api/polars.DataFrame.write_parquet.html
+
 
         print(f'Saved tanimoto similarity between {extracted_pubchem_data_filepath} and {comparison_dataset} to {tanimoto_similarity_save_path}')
         
@@ -260,7 +278,8 @@ def main(args):
         for i, extracted_pubchem_data_filepath in enumerate(extracted_pubchem_data_filepaths):
 
             run_comparison(comparison_smiles_list=comparison_smiles_list, comparison_dataset=args.comparison_dataset, 
-                           extracted_pubchem_data_filepath=extracted_pubchem_data_filepath, output_dir=args.output_dir, fingerprint_size=args.fingerprint_size, 
+                           extracted_pubchem_data_filepath=extracted_pubchem_data_filepath, output_dir=args.output_dir, 
+                           split_molecules=args.split_molecules, fingerprint_size=args.fingerprint_size, 
                            radius=args.radius, remove_salts=args.remove_salts, test=args.test)
             
             if args.test and i == NUM_FILES_TO_TEST - 1:
@@ -285,6 +304,7 @@ def main(args):
                                 [args.comparison_dataset] * num_pubchem_files,
                                  extracted_pubchem_data_filepaths, 
                                  [args.output_dir] * num_pubchem_files, 
+                                [args.split_molecules] * num_pubchem_files,
                                  [args.fingerprint_size] * num_pubchem_files, 
                                  [args.radius] * num_pubchem_files, 
                                 [args.remove_salts] * num_pubchem_files,
@@ -323,6 +343,11 @@ def parse_args():
         required=False,
         default=None,
         help="Path to the output directory where the similarity data will be saved. If not specified, will be saved to tanimoto_similarity_results/ with a timestamp.",
+    )
+    parser.add_argument(
+        "--split_molecules",
+        action="store_true",
+        help="Whether to split each entry in PubChem in individual molecules before running comparison. SMILES for distinct molecules are separated by a '.' character.",
     )
     parser.add_argument(
         "--fingerprint_size",
