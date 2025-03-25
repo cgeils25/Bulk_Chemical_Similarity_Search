@@ -16,3 +16,4 @@ extract_pubchem.sh
 personal
 .venv
 random_analyses
+final_filter
