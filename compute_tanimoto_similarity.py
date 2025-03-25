@@ -59,8 +59,6 @@ def smiles_list_to_fingerprint_matrix(smiles_list: list, fingerprint_size: int, 
         salt_remover = SaltRemover()
         print('remove_salts set to True. Will remove salts from molecules.')
     
-    print('Computing morgan fingerprints...')
-    
     for i, smiles in enumerate(smiles_list):
         try:
 
@@ -179,6 +177,7 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
         print(f'Running tanimoto similarity computation between {extracted_pubchem_data_filepath} and {comparison_dataset}')
 
         if split_molecules:
+            print('split_molecules set to True. Will split each entry in PubChem in individual molecules before running comparison. SMILES for distinct molecules are separated by a "." character.')
             # split each of the SMILES strings along the '.' character. Explode the dataframe so that each distinct molecule becomes its own row
             q = (pl.scan_parquet(extracted_pubchem_data_filepath)
                  .with_columns(PUBCHEM_SMILES=pl.col('PUBCHEM_SMILES').str.split('.'))
@@ -199,14 +198,20 @@ def run_comparison(comparison_smiles_list: list, comparison_dataset: str, extrac
         if test:
             pubchem_smiles_list = pubchem_smiles_list[:NUM_MOLS_TO_TEST]
         
+        print('Computing fingerprints for PubChem molecules...')
         pubchem_fingerprint_matrix = smiles_list_to_fingerprint_matrix(smiles_list=pubchem_smiles_list, fingerprint_size=fingerprint_size, 
                                                                        radius=radius, remove_salts=remove_salts)
-        
+        print('Done.')
+
+        print('Computing fingerprints for comparison dataset...')
         comparison_fingerprint_matrix = smiles_list_to_fingerprint_matrix(smiles_list=comparison_smiles_list, fingerprint_size=fingerprint_size,
                                                                           radius=radius, remove_salts=remove_salts) # This gets computed multiple times because I don't think you can pickle it for multiprocessing. Idk ig I should test at some point
-        
+        print('Done.')
+
+        print('Computing Tanimoto similarity matrix...')
         tanimoto_similarity_matrix = compute_tanimoto_similarity_matrix(pubchem_fingerprint_matrix, comparison_fingerprint_matrix)
-        
+        print('Done.')
+
         tanimoto_similarity_df = pl.DataFrame(tanimoto_similarity_matrix, schema = comparison_smiles_list)
         # add the properties that were extracted from the original pubchem sdf files
         
